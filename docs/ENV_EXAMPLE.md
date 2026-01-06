@@ -13,6 +13,7 @@
 ```bash
 export OPENCODE_URL='https://artifact.intra.example/opencode/opencode-linux-amd64'
 export OPENCODE_SHA256='(hex sha256)'
+./scripts/preflight_opencode_env.sh
 docker compose build ide
 ```
 
@@ -23,3 +24,12 @@ docker compose build ide
 - `services/workspace-image/opencode/opencode`
 - `services/workspace-image/opencode/opencode.sha256`
 
+## 3) 운영 체크리스트(실수 방지)
+
+- `OPENCODE_URL`을 설정했다면:
+  - `OPENCODE_SHA256`도 반드시 설정되어야 함(빈 값이면 실패)
+  - `OPENCODE_SHA256` 형식은 **64자리 hex**여야 함
+  - 빌드 전 `./scripts/preflight_opencode_env.sh`로 사전 검증(권장)
+- `OPENCODE_URL`이 비어있다면:
+  - 오프라인 COPY 경로를 사용
+  - `services/workspace-image/opencode/opencode.sha256`가 실제 바이너리 sha256과 일치해야 함
