@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>VDE Admin Portal</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="logo">VDE</div>
+          <div class="brand-text">
+            <div class="title">Admin</div>
+            <div class="sub">Workspace Management</div>
+          </div>
+        </div>
+
+        <nav class="nav">
+          <button class="nav-item active" data-view="workspaces">Workspaces</button>
+          <button class="nav-item" data-view="gateway">Gateway Test</button>
+        </nav>
+
+        <div class="panel">
+          <div class="panel-title">Admin Key</div>
+          <input id="adminKey" class="input" type="password" placeholder="X-Admin-Key" />
+          <div class="hint">키는 브라우저에 저장하지 않습니다(새로고침 시 재입력).</div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="header">
+          <div class="hgroup">
+            <h1 id="pageTitle">Workspaces</h1>
+            <p id="pageDesc">code-server + opencode 컨셉의 워크스페이스를 관리합니다.</p>
+          </div>
+          <div class="actions">
+            <button id="refreshBtn" class="btn">새로고침</button>
+          </div>
+        </header>
+
+        <section id="view-workspaces" class="view">
+          <div class="card">
+            <div class="card-title">Create workspace</div>
+            <div class="row">
+              <input id="wsName" class="input" placeholder="Workspace name" />
+              <input id="wsOwner" class="input" placeholder="Owner user_id (default: dev-user)" />
+              <input id="wsProject" class="input" placeholder="Project id (default: dev-project)" />
+              <button id="createBtn" class="btn primary">생성</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Workspace list</div>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Name</th>
+                  <th>Owner</th>
+                  <th>Project</th>
+                  <th>Status</th>
+                  <th>URL</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="wsTbody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="view-gateway" class="view hidden">
+          <div class="card">
+            <div class="card-title">Gateway quick test</div>
+            <div class="row">
+              <input id="gwPath" class="input" value="v1/chat" />
+              <input id="gwAuth" class="input" value="Bearer dev" />
+              <button id="gwSendBtn" class="btn primary">전송</button>
+            </div>
+            <textarea id="gwBody" class="textarea" rows="6">{ "messages":[{"role":"user","content":"hello"}] }</textarea>
+            <pre id="gwOut" class="pre"></pre>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
+

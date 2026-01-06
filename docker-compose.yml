@@ -1,0 +1,68 @@
+services:
+  # Web IDE (Cursor-like base): code-server
+  ide:
+    image: codercom/code-server:4.95.3
+    container_name: vde-ide
+    environment:
+      - PASSWORD=dev-only
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./workspace:/home/coder/project
+    command:
+      - --bind-addr
+      - 0.0.0.0:8080
+      - /home/coder/project
+
+  mock-upstream:
+    build:
+      context: ./services/mock_upstream
+    container_name: vde-mock-upstream
+    ports:
+      - "8082:8080"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/healthz', timeout=2).read(); print('ok')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  gateway:
+    build:
+      context: ./services/gateway
+    container_name: vde-gateway
+    environment:
+      - JWT_DEV_MODE=true
+      - UPSTREAM_AUTH_MODE=none
+      - UPSTREAM_TABBY=http://mock-upstream:8080
+      - UPSTREAM_AGENT=http://mock-upstream:8080
+      - UPSTREAM_CHAT=http://mock-upstream:8080
+      - UPSTREAM_RAG=http://mock-upstream:8080
+      - DLP_RULES_PATH=policies/dlp_rules.yaml
+      - DLP_STREAM_MODE=pre_only
+      - OPS_RETENTION_PURGE_KEY=dev-ops-key
+    ports:
+      - "8081:8081"
+    depends_on:
+      mock-upstream:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8081/healthz', timeout=2).read(); print('ok')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  portal:
+    build:
+      context: ./services/portal
+    container_name: vde-portal
+    environment:
+      - ADMIN_API_KEY=dev-admin-key
+      - GATEWAY_BASE_URL=http://gateway:8081
+      # WORKSPACE_PROVISIONER=mock|docker
+      - WORKSPACE_PROVISIONER=mock
+      - WORKSPACE_PUBLIC_BASE_URL=http://localhost
+      - WORKSPACE_PASSWORD=dev-only
+    ports:
+      - "8090:8090"
+    depends_on:
+      - gateway
