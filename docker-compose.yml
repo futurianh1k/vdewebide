@@ -1,7 +1,9 @@
 services:
   # Web IDE (Cursor-like base): code-server
   ide:
-    image: codercom/code-server:4.95.3
+    image: vde-workspace:0.1
+    build:
+      context: ./services/workspace-image
     container_name: vde-ide
     environment:
       - PASSWORD=dev-only
@@ -62,7 +64,7 @@ services:
       - WORKSPACE_PROVISIONER=docker
       - WORKSPACE_PUBLIC_BASE_URL=http://localhost
       - WORKSPACE_PASSWORD=dev-only
-      # WORKSPACE_IMAGE=codercom/code-server:4.95.3
+      - WORKSPACE_IMAGE=vde-workspace:0.1
     ports:
       - "8090:8090"
     depends_on:

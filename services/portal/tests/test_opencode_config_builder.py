@@ -14,3 +14,7 @@ class TestOpencodeConfigBuilder(unittest.TestCase):
         self.assertEqual(cfg["gateway"]["base_url"], "http://gateway:8081")
         self.assertFalse(cfg["security"]["store_tokens_in_config"])
 
+    def test_opencode_entry_script_is_shell_script(self):
+        s = DockerProvisioner.build_opencode_entry_script()
+        self.assertTrue(s.startswith("#!/usr/bin/env sh"))
+        self.assertIn("opencode 실행 파일이", s)
