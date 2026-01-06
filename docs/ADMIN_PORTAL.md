@@ -24,7 +24,7 @@ UI 좌측의 Admin Key 입력칸에 키를 넣으면 API 호출에 사용됩니�
 
 - **mock 모드(기본)**: 컨테이너를 만들지 않고 상태만 관리합니다.
   - 장점: Docker/K8s 없이도 흐름 검증 가능
-- **docker 모드(옵션)**: Docker Engine을 통해 code-server 컨테이너를 생성/중지/삭제합니다.
+- **docker 모드(데모 기본)**: Docker Engine을 통해 code-server 컨테이너를 생성/중지/삭제합니다.
   - 운영에서는 K8s/포털 연동으로 확장 예정
 
 설정:

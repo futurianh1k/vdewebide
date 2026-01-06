@@ -59,10 +59,14 @@ services:
       - ADMIN_API_KEY=dev-admin-key
       - GATEWAY_BASE_URL=http://gateway:8081
       # WORKSPACE_PROVISIONER=mock|docker
-      - WORKSPACE_PROVISIONER=mock
+      - WORKSPACE_PROVISIONER=docker
       - WORKSPACE_PUBLIC_BASE_URL=http://localhost
       - WORKSPACE_PASSWORD=dev-only
+      # WORKSPACE_IMAGE=codercom/code-server:4.95.3
     ports:
       - "8090:8090"
     depends_on:
       - gateway
+    # docker provisioner를 사용할 때만 필요(운영에서는 Docker socket 마운트 지양):
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
