@@ -25,6 +25,7 @@ def _get_provisioner():
             prefix=settings.workspace_container_prefix,
             password=settings.workspace_code_server_password,
             public_base_url=settings.workspace_public_base_url,
+            gateway_base_url=settings.gateway_base_url,
         )
     return MockProvisioner(public_base_url=settings.workspace_public_base_url)
 

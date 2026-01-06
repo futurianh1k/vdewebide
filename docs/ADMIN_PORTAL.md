@@ -27,6 +27,16 @@ UI 좌측의 Admin Key 입력칸에 키를 넣으면 API 호출에 사용됩니�
 - **docker 모드(데모 기본)**: Docker Engine을 통해 code-server 컨테이너를 생성/중지/삭제합니다.
   - 운영에서는 K8s/포털 연동으로 확장 예정
 
+### opencode 설정 자동 주입(데모)
+
+docker 모드에서 워크스페이스를 생성하면, 아래 경로에 설정이 자동으로 생성됩니다.
+
+- `~/.config/opencode/opencode.json`
+
+원칙:
+- **토큰/시크릿은 설정 파일에 저장하지 않음**
+- Gateway endpoint만 지정(모델 선택/라우팅은 Gateway 정책으로 통제)
+
 설정:
 - `WORKSPACE_PROVISIONER=mock|docker`
 - `WORKSPACE_IMAGE` (docker 모드) 기본: `codercom/code-server:4.95.3`
@@ -50,4 +60,5 @@ MVP의 `ADMIN_API_KEY` 방식은 데모/개발 편의용입니다.
 - SSO/Reverse Proxy 인증 + RBAC(tenant/project/workspace scope)
 - 관리자 액션은 Audit Log로 기록(누가/언제/무엇을)
 - Docker socket 마운트는 운영에서 금지(또는 엄격한 격리/권한 제한 필요)
+- opencode 토큰은 Secret 마운트(`/run/secrets/*`) 또는 환경변수로 주입하는 방식으로 확장 권장
 
