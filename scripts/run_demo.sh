@@ -11,6 +11,11 @@ RUN_DIR="${RUN_DIR:-/home/ubuntu/vdewebide-demo}"
 echo "[run_demo] src: ${SRC_DIR}"
 echo "[run_demo] run: ${RUN_DIR}"
 
+# Preflight: prevent operator mistakes for Plan A build args
+if [ -x "${SRC_DIR}/scripts/preflight_opencode_env.sh" ]; then
+  "${SRC_DIR}/scripts/preflight_opencode_env.sh"
+fi
+
 mkdir -p "${RUN_DIR}"
 rsync -a --delete --exclude '.git' --exclude '.venv' "${SRC_DIR}/" "${RUN_DIR}/"
 

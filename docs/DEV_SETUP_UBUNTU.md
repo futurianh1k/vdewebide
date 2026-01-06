@@ -23,6 +23,12 @@ docker compose up --build
 
 또는 환경변수 예시는 `docs/ENV_EXAMPLE.md` 참고.
 
+운영 실수 방지를 위해, 빌드 전에 아래 preflight를 권장합니다:
+
+```bash
+./scripts/preflight_opencode_env.sh
+```
+
 ### (중요) Docker가 Snap 설치인 경우
 
 Ubuntu에서 Docker가 Snap(`/snap/bin/docker`)로 설치된 환경에서는,
