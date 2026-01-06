@@ -21,6 +21,8 @@ docker compose up --build
 
 자세한 내용은 `services/workspace-image/README.md` 참고.
 
+또는 환경변수 예시는 `docs/ENV_EXAMPLE.md` 참고.
+
 ### (중요) Docker가 Snap 설치인 경우
 
 Ubuntu에서 Docker가 Snap(`/snap/bin/docker`)로 설치된 환경에서는,
