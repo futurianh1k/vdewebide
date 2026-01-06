@@ -19,6 +19,10 @@ class TestWorkspacesApi(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertIsInstance(r.json().get("items"), list)
 
+    def test_requires_admin_key(self):
+        r = self.c.get("/api/workspaces")
+        self.assertEqual(r.status_code, 403)
+
     def test_create_workspace(self):
         r = self.c.post("/api/workspaces", headers=self.h, json={"name": "ws1"})
         self.assertEqual(r.status_code, 200)

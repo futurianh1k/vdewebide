@@ -19,6 +19,7 @@
 - 실행: `docker compose up --build`
 - 접속: code-server는 `http://localhost:8080`
 - Gateway는 `http://localhost:8081`
+- Admin Portal은 `http://localhost:8090/admin`
 
 자세한 설정/운영 가이드는 `docs/`를 참고하세요.
 

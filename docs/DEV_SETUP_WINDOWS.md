@@ -18,6 +18,8 @@ docker compose up --build
   - 비밀번호: `dev-only` (데모 전용)
 - AI Gateway: `http://localhost:8081`
 - Mock Upstream: `http://localhost:8082`
+- Admin Portal: `http://localhost:8090/admin`
+  - Admin Key(기본): `dev-admin-key`
 
 ## 4) 보안 주의사항(데모 한정)
 
