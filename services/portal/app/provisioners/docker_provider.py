@@ -1,7 +1,6 @@
 import docker
 import os
 import json
-from pathlib import Path
 from docker.errors import NotFound
 
 from .base import WorkspaceProvisioner, ProvisionResult
@@ -28,6 +27,9 @@ class DockerProvisioner(WorkspaceProvisioner):
     def _config_volume_name(self, workspace_id: str) -> str:
         # ~/.config 전체를 볼륨으로 마운트(부모 디렉토리 생성 권한 이슈 방지)
         return f"{self.prefix}{workspace_id}-config"
+
+    def _localbin_volume_name(self, workspace_id: str) -> str:
+        return f"{self.prefix}{workspace_id}-localbin"
 
     def _get(self, workspace_id: str):
         return self.client.containers.get(self._container_name(workspace_id))
@@ -78,6 +80,29 @@ class DockerProvisioner(WorkspaceProvisioner):
             },
         }
 
+    @staticmethod
+    def build_opencode_entry_script() -> str:
+        """
+        워크스페이스 터미널에서 바로 실행 가능한 `opencode` 엔트리.
+        - 실제 opencode 바이너리가 이미지에 포함되어 있으면 그걸 실행
+        - 없으면 설치/배포 안내 메시지를 출력
+        """
+        return """#!/usr/bin/env sh
+set -eu
+
+for p in /usr/local/bin/opencode /usr/bin/opencode /opt/opencode/opencode; do
+  if [ -x \"$p\" ]; then
+    exec \"$p\" \"$@\"
+  fi
+done
+
+echo \"opencode 실행 파일이 워크스페이스 이미지에 포함되어 있지 않습니다.\" >&2
+echo \"- 운영/폐쇄망 환경에서는 opencode 바이너리를 사내 아티팩트로 패키징해 이미지 빌드 시 포함하거나,\" >&2
+echo \"  별도 볼륨/배포 방식으로 주입해야 합니다.\" >&2
+echo \"- 현재는 설정 파일만 자동 생성되었습니다: ~/.config/opencode/opencode.json\" >&2
+exit 127
+"""
+
     def _init_config_volume(self, volume_name: str) -> None:
         """
         ~/.config 볼륨을 초기화한다.
@@ -114,12 +139,40 @@ class DockerProvisioner(WorkspaceProvisioner):
             volumes={volume_name: {"bind": "/mnt/config", "mode": "rw"}},
         )
 
+    def _init_localbin_volume(self, volume_name: str) -> None:
+        script = self.build_opencode_entry_script()
+        cmd = [
+            "python",
+            "-c",
+            (
+                "import os, pathlib; base=pathlib.Path('/mnt/bin'); "
+                "base.mkdir(parents=True, exist_ok=True); "
+                f"p=base/'opencode'; p.write_text({script!r}, encoding='utf-8'); "
+                "os.chmod(p, 0o755); "
+                "uid=1000; gid=1000\n"
+                "for x in [base, p]:\n"
+                "    try:\n"
+                "        os.chown(str(x), uid, gid)\n"
+                "    except Exception:\n"
+                "        pass\n"
+                "print('initialized', str(p))"
+            ),
+        ]
+        self.client.containers.run(
+            "python:3.12-slim",
+            command=cmd,
+            remove=True,
+            volumes={volume_name: {"bind": "/mnt/bin", "mode": "rw"}},
+        )
+
     def create(self, workspace_id: str, display_name: str) -> ProvisionResult:
         name = self._container_name(workspace_id)
         try:
             vol = self.client.volumes.create(name=self._volume_name(workspace_id), labels={"vde.workspace_id": workspace_id})
             cfg_vol = self.client.volumes.create(name=self._config_volume_name(workspace_id), labels={"vde.workspace_id": workspace_id})
+            bin_vol = self.client.volumes.create(name=self._localbin_volume_name(workspace_id), labels={"vde.workspace_id": workspace_id})
             self._init_config_volume(cfg_vol.name)
+            self._init_localbin_volume(bin_vol.name)
             # code-server 기본 포트 8080을 host random port로 publish
             c = self.client.containers.run(
                 self.image,
@@ -127,11 +180,13 @@ class DockerProvisioner(WorkspaceProvisioner):
                 detach=True,
                 environment={
                     "PASSWORD": self.password,
+                    "PATH": f"/home/coder/.local/bin:{os.environ.get('PATH','/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin')}",
                 },
                 command=["--bind-addr", "0.0.0.0:8080", "/home/coder/project"],
                 volumes={
                     vol.name: {"bind": "/home/coder/project", "mode": "rw"},
                     cfg_vol.name: {"bind": "/home/coder/.config", "mode": "rw"},
+                    bin_vol.name: {"bind": "/home/coder/.local/bin", "mode": "rw"},
                 },
                 ports={"8080/tcp": None},
                 labels={
@@ -183,6 +238,11 @@ class DockerProvisioner(WorkspaceProvisioner):
                 v.remove(force=True)
             except Exception:
                 pass
+            try:
+                v = self.client.volumes.get(self._localbin_volume_name(workspace_id))
+                v.remove(force=True)
+            except Exception:
+                pass
             return ProvisionResult(status="deleted")
         except NotFound:
             # container not found, still try volume cleanup
@@ -193,6 +253,11 @@ class DockerProvisioner(WorkspaceProvisioner):
                 pass
             try:
                 v = self.client.volumes.get(self._config_volume_name(workspace_id))
+                v.remove(force=True)
+            except Exception:
+                pass
+            try:
+                v = self.client.volumes.get(self._localbin_volume_name(workspace_id))
                 v.remove(force=True)
             except Exception:
                 pass
