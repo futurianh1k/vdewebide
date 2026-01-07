@@ -1,7 +1,14 @@
 services:
   # Web IDE (Cursor-like base): code-server
   ide:
-    image: codercom/code-server:4.95.3
+    image: vde-workspace:0.1
+    build:
+      context: ./services/workspace-image
+      args:
+        # Plan A: 내부 아티팩트 기반 바이너리 포함
+        # - OPENCODE_URL이 비어있으면(기본) build context의 opencode/opencode + sha256를 사용(데모 stub)
+        - OPENCODE_URL=${OPENCODE_URL-}
+        - OPENCODE_SHA256=${OPENCODE_SHA256-}
     container_name: vde-ide
     environment:
       - PASSWORD=dev-only
@@ -62,7 +69,7 @@ services:
       - WORKSPACE_PROVISIONER=docker
       - WORKSPACE_PUBLIC_BASE_URL=http://localhost
       - WORKSPACE_PASSWORD=dev-only
-      # WORKSPACE_IMAGE=codercom/code-server:4.95.3
+      - WORKSPACE_IMAGE=vde-workspace:0.1
     ports:
       - "8090:8090"
     depends_on:

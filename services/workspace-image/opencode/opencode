@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+echo "opencode stub (demo-only): real binary should be supplied via internal artifact or offline copy."
+echo "args: $@"
