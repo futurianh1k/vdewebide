@@ -50,5 +50,6 @@ class Settings(BaseSettings):
     # Ops (MVP)
     # - 운영에서는 mTLS/mesh/RBAC 등으로 보호하고, 애플리케이션 레벨 키는 보조 수단으로만 사용 권장
     ops_retention_purge_key: Optional[str] = Field(default=None, alias="OPS_RETENTION_PURGE_KEY")
+    ops_policy_key: Optional[str] = Field(default=None, alias="OPS_POLICY_KEY")
 
 settings = Settings()

@@ -1,4 +1,16 @@
 services:
+  idp:
+    build:
+      context: ./services/idp
+    container_name: vde-idp
+    ports:
+      - "8083:8080"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/healthz', timeout=2).read(); print('ok')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
   # Web IDE (Cursor-like base): code-server
   ide:
     image: vde-workspace:0.1
@@ -25,6 +37,10 @@ services:
     build:
       context: ./services/mock_upstream
     container_name: vde-mock-upstream
+    environment:
+      # Gateway의 upstream auth 분리 검증용(옵션)
+      - REQUIRE_UPSTREAM_AUTH=${REQUIRE_UPSTREAM_AUTH-false}
+      - UPSTREAM_EXPECTED_BEARER=${UPSTREAM_EXPECTED_BEARER-upstream-dev-token}
     ports:
       - "8082:8080"
     healthcheck:
@@ -38,8 +54,19 @@ services:
       context: ./services/gateway
     container_name: vde-gateway
     environment:
-      - JWT_DEV_MODE=true
-      - UPSTREAM_AUTH_MODE=none
+      # 독립형 SaaS 모드:
+      # - 기본값은 dev 모드(true)로 빠른 데모를 제공
+      # - 실제 JWKS 검증을 테스트하려면 JWT_DEV_MODE=false로 두고,
+      #   OPENCODE/IDE 호출에 Authorization: Bearer <idp에서 발급한 토큰>을 사용
+      - JWT_DEV_MODE=${JWT_DEV_MODE-true}
+      - JWT_JWKS_URL=http://idp:8080/.well-known/jwks.json
+      - JWT_ISSUER=vde-idp
+      - JWT_AUDIENCE=vde-gateway
+      # Upstream auth 분리(옵션):
+      # - none(기본): upstream에 Authorization 헤더 미전달
+      # - static_bearer: UPSTREAM_BEARER_TOKEN을 upstream에 Bearer로 전달
+      - UPSTREAM_AUTH_MODE=${UPSTREAM_AUTH_MODE-none}
+      - UPSTREAM_BEARER_TOKEN=${UPSTREAM_BEARER_TOKEN-upstream-dev-token}
       - UPSTREAM_TABBY=http://mock-upstream:8080
       - UPSTREAM_AGENT=http://mock-upstream:8080
       - UPSTREAM_CHAT=http://mock-upstream:8080
@@ -50,6 +77,8 @@ services:
     ports:
       - "8081:8081"
     depends_on:
+      idp:
+        condition: service_healthy
       mock-upstream:
         condition: service_healthy
     healthcheck:
@@ -65,6 +94,7 @@ services:
     environment:
       - ADMIN_API_KEY=dev-admin-key
       - GATEWAY_BASE_URL=http://gateway:8081
+      - IDP_BASE_URL=http://idp:8080
       # WORKSPACE_PROVISIONER=mock|docker
       - WORKSPACE_PROVISIONER=docker
       - WORKSPACE_PUBLIC_BASE_URL=http://localhost
@@ -77,3 +107,18 @@ services:
     # docker provisioner를 사용할 때만 필요(운영에서는 Docker socket 마운트 지양):
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+
+  # Dev tool: Portainer (Docker UI)
+  # - 개발 환경에서만 사용 권장(운영에서는 Docker socket 마운트 지양)
+  portainer:
+    image: portainer/portainer-ce:2.20.3
+    container_name: vde-portainer
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+
+volumes:
+  portainer_data:

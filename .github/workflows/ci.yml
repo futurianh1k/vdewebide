@@ -33,11 +33,18 @@ jobs:
         run: |
           . .venv/bin/activate
           pip install -r services/portal/requirements.txt
+      - name: Install deps (idp/mock_upstream)
+        run: |
+          . .venv/bin/activate
+          pip install -r services/idp/requirements.txt
+          pip install -r services/mock_upstream/requirements.txt
       - name: Unit tests
         run: |
           . .venv/bin/activate
           python -m unittest discover -s services/gateway/tests -p 'test_*.py'
           python -m unittest discover -s services/portal/tests -p 'test_*.py'
+          python -m unittest discover -s services/idp/tests -p 'test_*.py'
+          python -m unittest discover -s services/mock_upstream/tests -p 'test_*.py'
 
   image_smoke_offline:
     runs-on: ubuntu-latest
