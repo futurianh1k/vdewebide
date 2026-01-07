@@ -41,6 +41,15 @@ class UserResponse(BaseModel):
     created_at_ms: int
 
 
+class PocBootstrapRequest(BaseModel):
+    tenant_name: str = Field(default="Demo Tenant", min_length=1, max_length=80)
+    project_name: str = Field(default="Demo Project", min_length=1, max_length=80)
+    user_id: str = Field(default="demo-user", min_length=1, max_length=80)
+    user_display_name: str = Field(default="Demo User", min_length=1, max_length=80)
+    user_role: str = Field(default="admin", min_length=1, max_length=40)
+    workspace_name: str = Field(default="demo-workspace", min_length=1, max_length=80)
+
+
 class WorkspaceCreateRequest(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     owner_user_id: str = Field(default="dev-user", min_length=1, max_length=80)

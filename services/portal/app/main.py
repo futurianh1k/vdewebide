@@ -11,6 +11,7 @@ from .models import (
     TenantCreateRequest,
     ProjectCreateRequest,
     UserCreateRequest,
+    PocBootstrapRequest,
 )
 from .provisioners.mock import MockProvisioner
 from .provisioners.docker_provider import DockerProvisioner
@@ -96,6 +97,30 @@ def create_user(req: UserCreateRequest):
         return {"error": {"code": "TENANT_NOT_FOUND"}}
     u = users.create(req.tenant_id, req.user_id, req.display_name, req.role)
     return u.model_dump()
+
+
+@app.post("/api/poc/bootstrap")
+def poc_bootstrap(req: PocBootstrapRequest):
+    """
+    PoC 데모 데이터 1세트 자동 생성:
+    - tenant/project/user/workspace를 순서대로 만들고, workspace는 provisioner로 실제 생성까지 수행한다.
+    """
+    prov = _get_provisioner()
+
+    t = tenants.create(req.tenant_name)
+    p = projects.create(t.id, req.project_name)
+    u = users.create(t.id, req.user_id, req.user_display_name, req.user_role)
+
+    ws = store.create(req.workspace_name, owner_user_id=u.user_id, project_id=p.id, provider=prov.name)
+    res = prov.create(ws.id, ws.name)
+    ws = store.update(ws.id, status=res.status, url=res.url)
+
+    return {
+        "tenant": t.model_dump(),
+        "project": p.model_dump(),
+        "user": u.model_dump(),
+        "workspace": ws.model_dump(),
+    }
 
 
 @app.post("/api/workspaces")

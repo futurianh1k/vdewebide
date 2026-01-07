@@ -204,6 +204,36 @@ async function onUpApply() {
   qs("#upOut").textContent = JSON.stringify(data, null, 2);
 }
 
+async function onPocBootstrap() {
+  qs("#pocOut").textContent = "loading...";
+  const data = await api("/api/poc/bootstrap", { method: "POST", body: JSON.stringify({}) });
+  qs("#pocOut").textContent = JSON.stringify(data, null, 2);
+
+  const t = data.tenant || {};
+  const p = data.project || {};
+  const u = data.user || {};
+  const ws = data.workspace || {};
+
+  if (t.id) {
+    qs("#projectTenantId").value = t.id;
+    qs("#userTenantId").value = t.id;
+    qs("#idpTid").value = t.id;
+  }
+  if (p.id) {
+    qs("#wsProject").value = p.id;
+    qs("#idpPid").value = p.id;
+  }
+  if (u.user_id) {
+    qs("#wsOwner").value = u.user_id;
+    qs("#idpSub").value = u.user_id;
+    qs("#idpRole").value = u.role || qs("#idpRole").value;
+  }
+  if (ws.id) {
+    qs("#idpWid").value = ws.id;
+  }
+  await refreshWorkspaces();
+}
+
 function init() {
   document.querySelectorAll(".nav-item").forEach((b) => b.addEventListener("click", () => setView(b.dataset.view)));
   qs("#refreshBtn").addEventListener("click", () => refreshWorkspaces().catch((e) => alert(e.message)));
@@ -220,6 +250,7 @@ function init() {
   qs("#dlpApplyBtn").addEventListener("click", () => onDlpApply().catch((e) => alert(e.message)));
   qs("#upFetchBtn").addEventListener("click", () => onUpFetch().catch((e) => alert(e.message)));
   qs("#upApplyBtn").addEventListener("click", () => onUpApply().catch((e) => alert(e.message)));
+  qs("#pocBootstrapBtn").addEventListener("click", () => onPocBootstrap().catch((e) => alert(e.message)));
 
   setView("workspaces");
   refreshWorkspaces().catch(() => {});

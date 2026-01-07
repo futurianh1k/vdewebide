@@ -50,6 +50,16 @@ class TestWorkspacesApi(unittest.TestCase):
         self.assertEqual(self.c.get(f"/api/projects?tenant_id={tid}", headers=self.h).status_code, 200)
         self.assertEqual(self.c.get(f"/api/users?tenant_id={tid}", headers=self.h).status_code, 200)
 
+    def test_poc_bootstrap(self):
+        r = self.c.post("/api/poc/bootstrap", headers=self.h, json={})
+        self.assertEqual(r.status_code, 200)
+        body = r.json()
+        self.assertIn("tenant", body)
+        self.assertIn("project", body)
+        self.assertIn("user", body)
+        self.assertIn("workspace", body)
+        self.assertTrue(body["workspace"].get("id"))
+
     def test_create_workspace(self):
         r = self.c.post("/api/workspaces", headers=self.h, json={"name": "ws1"})
         self.assertEqual(r.status_code, 200)

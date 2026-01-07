@@ -31,7 +31,7 @@ docker compose up --build
 ### PoC 권장 데모 흐름(화면 기준)
 
 1) Portal 접속 → 좌측 **Admin Key**에 `dev-admin-key` 입력  
-2) **Org** 탭에서 tenant/project/user 생성 → workspace 생성 폼에 project/user 자동 채움 확인  
+2) **Org** 탭에서 **PoC 자동 생성(1세트)** 버튼 클릭 → tenant/project/user/workspace가 한 번에 생성되는 것 확인  
 3) **SSO/JWT** 탭에서 토큰 발급 → `Bearer ...`가 자동으로 Gateway/Ops 입력란에 채워짐 확인  
 4) **Gateway Test** 탭에서 `/v1/chat` 호출(Authorization 포함)  
 5) **Policy** 탭에서

@@ -75,6 +75,15 @@
 
         <section id="view-org" class="view hidden">
           <div class="card">
+            <div class="card-title">PoC 자동 생성</div>
+            <div class="hint">tenant/project/user/workspace 1세트를 한 번에 생성하고, workspace 목록을 갱신합니다.</div>
+            <div class="row">
+              <button id="pocBootstrapBtn" class="btn primary">1세트 자동 생성</button>
+            </div>
+            <pre id="pocOut" class="pre"></pre>
+          </div>
+
+          <div class="card">
             <div class="card-title">Tenant</div>
             <div class="row">
               <input id="tenantName" class="input" placeholder="Tenant name" />
