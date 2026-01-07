@@ -33,3 +33,12 @@ docker compose build ide
 - `OPENCODE_URL`이 비어있다면:
   - 오프라인 COPY 경로를 사용
   - `services/workspace-image/opencode/opencode.sha256`가 실제 바이너리 sha256과 일치해야 함
+
+## CI(GitHub Actions)에서 artifact 경로 스모크 테스트를 켜는 방법
+
+- GitHub 레포 Settings → Secrets and variables → Actions → Secrets에 아래 2개를 등록하면,
+  `.github/workflows/ci.yml`의 `image_smoke_artifact` job이 자동으로 활성화됩니다.
+  - `OPENCODE_URL`: 사내 아티팩트의 opencode 바이너리 URL
+  - `OPENCODE_SHA256`: 위 바이너리의 sha256(64-hex)
+
+- 미등록 시에는 `image_smoke_artifact` job이 **스킵**되며, offline(COPY) 스모크 테스트만 수행됩니다.

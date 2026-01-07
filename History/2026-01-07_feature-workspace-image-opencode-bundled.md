@@ -29,3 +29,7 @@
 
 - CI에서 workspace 이미지 빌드 스모크 테스트를 추가했다(offline COPY 경로):
   - `services/workspace-image`를 빌드하고 `/usr/local/bin/opencode` 존재/실행 여부를 점검
+
+- (옵션) CI에서 내부 아티팩트 기반 빌드 스모크 테스트를 추가했다(artifact URL 경로):
+  - GitHub Actions Secrets에 `OPENCODE_URL`, `OPENCODE_SHA256`가 설정된 경우에만 job 실행
+  - 다운로드 + sha256 검증 후 이미지 빌드 및 `/usr/local/bin/opencode` 존재/실행 여부 점검

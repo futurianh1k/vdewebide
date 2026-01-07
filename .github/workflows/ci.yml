@@ -39,7 +39,7 @@ jobs:
           python -m unittest discover -s services/gateway/tests -p 'test_*.py'
           python -m unittest discover -s services/portal/tests -p 'test_*.py'
 
-  image_smoke:
+  image_smoke_offline:
     runs-on: ubuntu-latest
     needs: [preflight, tests]
     steps:
@@ -49,10 +49,41 @@ jobs:
           OPENCODE_URL: ""
           OPENCODE_SHA256: ""
         run: |
-          docker build -t vde-workspace:ci services/workspace-image
+          docker build -t vde-workspace:ci-offline services/workspace-image
       - name: Smoke check: opencode exists and is executable
         run: |
-          docker run --rm --entrypoint sh vde-workspace:ci -c 'test -x /usr/local/bin/opencode'
+          docker run --rm --entrypoint sh vde-workspace:ci-offline -c 'test -x /usr/local/bin/opencode'
       - name: Smoke check: opencode runs (stub ok)
         run: |
-          docker run --rm --entrypoint sh vde-workspace:ci -c '/usr/local/bin/opencode --help >/dev/null 2>&1 || true'
+          docker run --rm --entrypoint sh vde-workspace:ci-offline -c '/usr/local/bin/opencode --help >/dev/null 2>&1 || true'
+
+  image_smoke_artifact:
+    runs-on: ubuntu-latest
+    needs: [preflight, tests]
+    # 시크릿이 설정된 경우에만 실행 (미설정이면 스킵)
+    if: ${{ secrets.OPENCODE_URL != '' && secrets.OPENCODE_SHA256 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preflight (artifact mode)
+        shell: bash
+        env:
+          OPENCODE_URL: ${{ secrets.OPENCODE_URL }}
+          OPENCODE_SHA256: ${{ secrets.OPENCODE_SHA256 }}
+        run: |
+          chmod +x scripts/preflight_opencode_env.sh
+          ./scripts/preflight_opencode_env.sh
+      - name: Build workspace image (artifact URL mode)
+        env:
+          OPENCODE_URL: ${{ secrets.OPENCODE_URL }}
+          OPENCODE_SHA256: ${{ secrets.OPENCODE_SHA256 }}
+        run: |
+          docker build -t vde-workspace:ci-artifact \
+            --build-arg OPENCODE_URL="$OPENCODE_URL" \
+            --build-arg OPENCODE_SHA256="$OPENCODE_SHA256" \
+            services/workspace-image
+      - name: Smoke check: opencode exists and is executable
+        run: |
+          docker run --rm --entrypoint sh vde-workspace:ci-artifact -c 'test -x /usr/local/bin/opencode'
+      - name: Smoke check: opencode runs
+        run: |
+          docker run --rm --entrypoint sh vde-workspace:ci-artifact -c '/usr/local/bin/opencode --help >/dev/null 2>&1'
