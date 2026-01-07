@@ -22,3 +22,10 @@
 - `docker-compose.yml`: IDE 및 Portal(workspace_image) 기본값을 workspace 이미지로 전환
 - 문서: 폐쇄망 빌드 절차, sha256 검증, 운영 승인 포인트 정리
 
+## 4) CI 반영(실수 방지)
+
+- CI에서 `scripts/preflight_opencode_env.sh`를 **테스트 전에 필수 실행**하도록 워크플로우를 추가했다.
+  - 목적: `OPENCODE_URL` 설정 시 `OPENCODE_SHA256` 누락/형식 오류를 파이프라인에서 즉시 실패시키기 위함
+
+- CI에서 workspace 이미지 빌드 스모크 테스트를 추가했다(offline COPY 경로):
+  - `services/workspace-image`를 빌드하고 `/usr/local/bin/opencode` 존재/실행 여부를 점검
