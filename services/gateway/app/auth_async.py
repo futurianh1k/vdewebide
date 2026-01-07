@@ -24,9 +24,10 @@ async def verify_bearer_token_async(authorization: Optional[str]) -> Identity:
     token = authorization.split(" ", 1)[1].strip()
 
     if settings.jwt_dev_mode:
-        if token != "dev":
+        if token not in ("dev", "dev-admin"):
             raise AuthError("AUTH_INVALID_TOKEN", 401)
-        return Identity(user_id="dev-user", tenant_id="dev-tenant", project_id="dev-project", workspace_id="dev-workspace", role="developer")
+        role = "admin" if token == "dev-admin" else "developer"
+        return Identity(user_id="dev-user", tenant_id="dev-tenant", project_id="dev-project", workspace_id="dev-workspace", role=role)
 
     if not settings.jwt_jwks_url and not settings.jwt_jwks_file:
         raise AuthError("AUTH_MISCONFIGURED_JWKS", 500)

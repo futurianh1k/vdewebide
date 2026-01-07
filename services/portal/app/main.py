@@ -5,8 +5,13 @@ from pathlib import Path
 
 from .config import settings
 from .auth import AdminAuthMiddleware
-from .store import WorkspaceStore
-from .models import WorkspaceCreateRequest
+from .store import WorkspaceStore, TenantStore, ProjectStore, UserStore
+from .models import (
+    WorkspaceCreateRequest,
+    TenantCreateRequest,
+    ProjectCreateRequest,
+    UserCreateRequest,
+)
 from .provisioners.mock import MockProvisioner
 from .provisioners.docker_provider import DockerProvisioner
 
@@ -15,6 +20,9 @@ app = FastAPI(title="Admin Portal", version="0.1.0")
 app.add_middleware(AdminAuthMiddleware)
 
 store = WorkspaceStore()
+tenants = TenantStore()
+projects = ProjectStore()
+users = UserStore()
 STATIC_DIR = (Path(__file__).resolve().parents[1] / "static").resolve()
 
 
@@ -51,6 +59,43 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 @app.get("/api/workspaces")
 def list_workspaces():
     return {"items": [w.model_dump() for w in store.list()]}
+
+
+@app.get("/api/tenants")
+def list_tenants():
+    return {"items": [t.model_dump() for t in tenants.list()]}
+
+
+@app.post("/api/tenants")
+def create_tenant(req: TenantCreateRequest):
+    t = tenants.create(req.name)
+    return t.model_dump()
+
+
+@app.get("/api/projects")
+def list_projects(tenant_id: str | None = None):
+    return {"items": [p.model_dump() for p in projects.list(tenant_id=tenant_id)]}
+
+
+@app.post("/api/projects")
+def create_project(req: ProjectCreateRequest):
+    if not tenants.get(req.tenant_id):
+        return {"error": {"code": "TENANT_NOT_FOUND"}}
+    p = projects.create(req.tenant_id, req.name)
+    return p.model_dump()
+
+
+@app.get("/api/users")
+def list_users(tenant_id: str | None = None):
+    return {"items": [u.model_dump() for u in users.list(tenant_id=tenant_id)]}
+
+
+@app.post("/api/users")
+def create_user(req: UserCreateRequest):
+    if not tenants.get(req.tenant_id):
+        return {"error": {"code": "TENANT_NOT_FOUND"}}
+    u = users.create(req.tenant_id, req.user_id, req.display_name, req.role)
+    return u.model_dump()
 
 
 @app.post("/api/workspaces")

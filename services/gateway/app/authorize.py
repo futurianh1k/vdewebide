@@ -7,6 +7,10 @@ def require_role(identity: Identity, min_role: str):
         raise AuthError("AUTH_FORBIDDEN", 403)
 
 def authorize_path(identity: Identity, path: str):
+    # Ops endpoints (admin only)
+    if path.startswith("/ops/"):
+        require_role(identity, "admin")
+        return
     if path.startswith("/v1/autocomplete"):
         require_role(identity, "viewer")
     elif path.startswith("/v1/chat"):
