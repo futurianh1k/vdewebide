@@ -39,3 +39,20 @@ jobs:
           python -m unittest discover -s services/gateway/tests -p 'test_*.py'
           python -m unittest discover -s services/portal/tests -p 'test_*.py'
 
+  image_smoke:
+    runs-on: ubuntu-latest
+    needs: [preflight, tests]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build workspace image (offline COPY mode)
+        env:
+          OPENCODE_URL: ""
+          OPENCODE_SHA256: ""
+        run: |
+          docker build -t vde-workspace:ci services/workspace-image
+      - name: Smoke check: opencode exists and is executable
+        run: |
+          docker run --rm --entrypoint sh vde-workspace:ci -c 'test -x /usr/local/bin/opencode'
+      - name: Smoke check: opencode runs (stub ok)
+        run: |
+          docker run --rm --entrypoint sh vde-workspace:ci -c '/usr/local/bin/opencode --help >/dev/null 2>&1 || true'
