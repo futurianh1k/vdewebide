@@ -107,3 +107,18 @@ services:
     # docker provisioner를 사용할 때만 필요(운영에서는 Docker socket 마운트 지양):
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+
+  # Dev tool: Portainer (Docker UI)
+  # - 개발 환경에서만 사용 권장(운영에서는 Docker socket 마운트 지양)
+  portainer:
+    image: portainer/portainer-ce:2.20.3
+    container_name: vde-portainer
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+
+volumes:
+  portainer_data:
