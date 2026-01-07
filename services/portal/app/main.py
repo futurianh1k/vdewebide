@@ -158,3 +158,22 @@ async def proxy_gateway(path: str, request: Request):
         r = await client.request(request.method, url, content=body, headers=headers)
         return (r.json() if "application/json" in r.headers.get("content-type", "") else {"raw": r.text})
 
+
+@app.post("/api/idp/{path:path}")
+@app.get("/api/idp/{path:path}")
+async def proxy_idp(path: str, request: Request):
+    """
+    브라우저 CORS 없이 Mock IdP를 호출하기 위한 프록시.
+    - 운영에서는 제거하거나, 내부망/프록시 정책에 맞게 제한 필요.
+    """
+    import httpx
+
+    url = f"{settings.idp_base_url}/{path}"
+    body = await request.body()
+    headers = dict(request.headers)
+    headers.pop("x-admin-key", None)
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        r = await client.request(request.method, url, content=body, headers=headers)
+        return (r.json() if "application/json" in r.headers.get("content-type", "") else {"raw": r.text})
+

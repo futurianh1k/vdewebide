@@ -28,6 +28,16 @@ docker compose up --build
 - Mock Upstream: `http://localhost:8082`
 - Mock IdP: `http://localhost:8083`
 
+### PoC 권장 데모 흐름(화면 기준)
+
+1) Portal 접속 → 좌측 **Admin Key**에 `dev-admin-key` 입력  
+2) **Org** 탭에서 tenant/project/user 생성 → workspace 생성 폼에 project/user 자동 채움 확인  
+3) **SSO/JWT** 탭에서 토큰 발급 → `Bearer ...`가 자동으로 Gateway/Ops 입력란에 채워짐 확인  
+4) **Gateway Test** 탭에서 `/v1/chat` 호출(Authorization 포함)  
+5) **Policy** 탭에서
+   - DLP rules 조회/수정/적용(예: bearer_token 룰) → Gateway 호출 결과 변화 확인
+   - Upstream Auth `static_bearer`로 전환 후(필요 시 compose env로 upstream 인증 요구 켜기) → 호출 성공/실패 차이 확인
+
 ## 3) SSO/JWT Mock (IdP)
 
 JWT 발급:

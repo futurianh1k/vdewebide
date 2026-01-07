@@ -20,6 +20,13 @@
 - 접속: code-server는 `http://localhost:8080`
 - Gateway는 `http://localhost:8081`
 - Admin Portal은 `http://localhost:8090/admin`
+- Mock IdP(SSO/JWT)는 `http://localhost:8083`
 
 자세한 설정/운영 가이드는 `docs/`를 참고하세요.
 
+## 독립형 White-label SaaS 모드(Mock 계약)
+
+고객 시스템 연동 전에도 독립형으로 SSO/JWT, upstream auth, DLP policy, workspace lifecycle을 검증할 수 있도록
+Mock 서비스/API 계약을 제공합니다.
+
+- 문서: `docs/WHITE_LABEL_SAAS.md`

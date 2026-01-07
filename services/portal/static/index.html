@@ -19,6 +19,9 @@
 
         <nav class="nav">
           <button class="nav-item active" data-view="workspaces">Workspaces</button>
+          <button class="nav-item" data-view="org">Org (Tenant/Project/User)</button>
+          <button class="nav-item" data-view="sso">SSO/JWT</button>
+          <button class="nav-item" data-view="policy">Policy (DLP/Upstream)</button>
           <button class="nav-item" data-view="gateway">Gateway Test</button>
         </nav>
 
@@ -67,6 +70,98 @@
               </thead>
               <tbody id="wsTbody"></tbody>
             </table>
+          </div>
+        </section>
+
+        <section id="view-org" class="view hidden">
+          <div class="card">
+            <div class="card-title">Tenant</div>
+            <div class="row">
+              <input id="tenantName" class="input" placeholder="Tenant name" />
+              <button id="tenantCreateBtn" class="btn primary">생성</button>
+            </div>
+            <pre id="tenantOut" class="pre"></pre>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Project</div>
+            <div class="row">
+              <input id="projectTenantId" class="input" placeholder="Tenant id" />
+              <input id="projectName" class="input" placeholder="Project name" />
+              <button id="projectCreateBtn" class="btn primary">생성</button>
+            </div>
+            <pre id="projectOut" class="pre"></pre>
+          </div>
+
+          <div class="card">
+            <div class="card-title">User</div>
+            <div class="row">
+              <input id="userTenantId" class="input" placeholder="Tenant id" />
+              <input id="userId" class="input" placeholder="user_id" />
+              <input id="userDisplayName" class="input" placeholder="display name" />
+              <input id="userRole" class="input" placeholder="role (admin/developer/viewer)" value="developer" />
+              <button id="userCreateBtn" class="btn primary">생성</button>
+            </div>
+            <pre id="userOut" class="pre"></pre>
+          </div>
+        </section>
+
+        <section id="view-sso" class="view hidden">
+          <div class="card">
+            <div class="card-title">Mock IdP: Token 발급</div>
+            <div class="hint">PoC 목적: Gateway의 JWKS 기반 JWT 검증 흐름을 독립형으로 시연합니다.</div>
+            <div class="row">
+              <input id="idpSub" class="input" value="dev-user" placeholder="sub(user_id)" />
+              <input id="idpTid" class="input" value="dev-tenant" placeholder="tid(tenant_id)" />
+              <input id="idpPid" class="input" value="dev-project" placeholder="pid(project_id)" />
+              <input id="idpWid" class="input" value="dev-workspace" placeholder="wid(workspace_id)" />
+            </div>
+            <div class="row">
+              <input id="idpRole" class="input" value="admin" placeholder="role" />
+              <input id="idpIss" class="input" value="vde-idp" placeholder="iss" />
+              <input id="idpAud" class="input" value="vde-gateway" placeholder="aud" />
+              <button id="idpIssueBtn" class="btn primary">발급</button>
+            </div>
+            <div class="row">
+              <input id="issuedBearer" class="input" placeholder="Bearer token (auto-filled)" />
+              <button id="copyBearerBtn" class="btn">Bearer 복사</button>
+            </div>
+            <pre id="idpOut" class="pre"></pre>
+          </div>
+        </section>
+
+        <section id="view-policy" class="view hidden">
+          <div class="card">
+            <div class="card-title">Ops Key</div>
+            <div class="row">
+              <input id="opsKey" class="input" type="password" placeholder="X-Ops-Key (예: dev-ops-key)" />
+              <input id="opsAuth" class="input" value="Bearer dev-admin" placeholder="Authorization (Bearer dev-admin or JWT)" />
+            </div>
+            <div class="hint">운영에서는 mTLS/mesh/RBAC 등으로 보호 권장. PoC에서는 최소 키 + admin role로 시연합니다.</div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">DLP rules (YAML)</div>
+            <div class="row">
+              <button id="dlpFetchBtn" class="btn">조회</button>
+              <button id="dlpApplyBtn" class="btn primary">적용</button>
+            </div>
+            <textarea id="dlpYaml" class="textarea" rows="10"></textarea>
+            <pre id="dlpOut" class="pre"></pre>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Upstream Auth</div>
+            <div class="row">
+              <button id="upFetchBtn" class="btn">조회</button>
+              <select id="upMode" class="input">
+                <option value="none">none</option>
+                <option value="static_bearer">static_bearer</option>
+              </select>
+              <input id="upBearer" class="input" placeholder="upstream bearer token" value="upstream-dev-token" />
+              <button id="upApplyBtn" class="btn primary">적용</button>
+            </div>
+            <pre id="upOut" class="pre"></pre>
           </div>
         </section>
 
