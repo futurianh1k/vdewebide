@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     # Gateway (for AI proxy calls)
     gateway_base_url: str = Field(default="http://gateway:8081", alias="GATEWAY_BASE_URL")
 
+    # IdP (for SSO/JWT mock)
+    idp_base_url: str = Field(default="http://idp:8080", alias="IDP_BASE_URL")
+
     # Workspace provisioner
     # - mock: 상태만 관리(테스트/로컬)
     # - docker: Docker Engine으로 code-server 컨테이너 생성/중지/삭제

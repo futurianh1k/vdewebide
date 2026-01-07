@@ -12,6 +12,23 @@
 docker compose up --build
 ```
 
+### Workspace 이미지(opencode 포함) 빌드(Plan A)
+
+이 데모는 `services/workspace-image/`를 통해 `vde-workspace:0.1` 이미지를 빌드합니다.
+
+- **오프라인 COPY(데모 기본)**: `services/workspace-image/opencode/opencode` 파일을 사용
+- **내부 아티팩트 다운로드(권장)**: `OPENCODE_URL`, `OPENCODE_SHA256`를 build-arg로 제공
+
+자세한 내용은 `services/workspace-image/README.md` 참고.
+
+또는 환경변수 예시는 `docs/ENV_EXAMPLE.md` 참고.
+
+운영 실수 방지를 위해, 빌드 전에 아래 preflight를 권장합니다:
+
+```bash
+./scripts/preflight_opencode_env.sh
+```
+
 ### (중요) Docker가 Snap 설치인 경우
 
 Ubuntu에서 Docker가 Snap(`/snap/bin/docker`)로 설치된 환경에서는,

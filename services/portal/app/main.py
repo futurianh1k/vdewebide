@@ -5,8 +5,14 @@ from pathlib import Path
 
 from .config import settings
 from .auth import AdminAuthMiddleware
-from .store import WorkspaceStore
-from .models import WorkspaceCreateRequest
+from .store import WorkspaceStore, TenantStore, ProjectStore, UserStore
+from .models import (
+    WorkspaceCreateRequest,
+    TenantCreateRequest,
+    ProjectCreateRequest,
+    UserCreateRequest,
+    PocBootstrapRequest,
+)
 from .provisioners.mock import MockProvisioner
 from .provisioners.docker_provider import DockerProvisioner
 
@@ -15,6 +21,9 @@ app = FastAPI(title="Admin Portal", version="0.1.0")
 app.add_middleware(AdminAuthMiddleware)
 
 store = WorkspaceStore()
+tenants = TenantStore()
+projects = ProjectStore()
+users = UserStore()
 STATIC_DIR = (Path(__file__).resolve().parents[1] / "static").resolve()
 
 
@@ -25,6 +34,7 @@ def _get_provisioner():
             prefix=settings.workspace_container_prefix,
             password=settings.workspace_code_server_password,
             public_base_url=settings.workspace_public_base_url,
+            gateway_base_url=settings.gateway_base_url,
         )
     return MockProvisioner(public_base_url=settings.workspace_public_base_url)
 
@@ -50,6 +60,67 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 @app.get("/api/workspaces")
 def list_workspaces():
     return {"items": [w.model_dump() for w in store.list()]}
+
+
+@app.get("/api/tenants")
+def list_tenants():
+    return {"items": [t.model_dump() for t in tenants.list()]}
+
+
+@app.post("/api/tenants")
+def create_tenant(req: TenantCreateRequest):
+    t = tenants.create(req.name)
+    return t.model_dump()
+
+
+@app.get("/api/projects")
+def list_projects(tenant_id: str | None = None):
+    return {"items": [p.model_dump() for p in projects.list(tenant_id=tenant_id)]}
+
+
+@app.post("/api/projects")
+def create_project(req: ProjectCreateRequest):
+    if not tenants.get(req.tenant_id):
+        return {"error": {"code": "TENANT_NOT_FOUND"}}
+    p = projects.create(req.tenant_id, req.name)
+    return p.model_dump()
+
+
+@app.get("/api/users")
+def list_users(tenant_id: str | None = None):
+    return {"items": [u.model_dump() for u in users.list(tenant_id=tenant_id)]}
+
+
+@app.post("/api/users")
+def create_user(req: UserCreateRequest):
+    if not tenants.get(req.tenant_id):
+        return {"error": {"code": "TENANT_NOT_FOUND"}}
+    u = users.create(req.tenant_id, req.user_id, req.display_name, req.role)
+    return u.model_dump()
+
+
+@app.post("/api/poc/bootstrap")
+def poc_bootstrap(req: PocBootstrapRequest):
+    """
+    PoC 데모 데이터 1세트 자동 생성:
+    - tenant/project/user/workspace를 순서대로 만들고, workspace는 provisioner로 실제 생성까지 수행한다.
+    """
+    prov = _get_provisioner()
+
+    t = tenants.create(req.tenant_name)
+    p = projects.create(t.id, req.project_name)
+    u = users.create(t.id, req.user_id, req.user_display_name, req.user_role)
+
+    ws = store.create(req.workspace_name, owner_user_id=u.user_id, project_id=p.id, provider=prov.name)
+    res = prov.create(ws.id, ws.name)
+    ws = store.update(ws.id, status=res.status, url=res.url)
+
+    return {
+        "tenant": t.model_dump(),
+        "project": p.model_dump(),
+        "user": u.model_dump(),
+        "workspace": ws.model_dump(),
+    }
 
 
 @app.post("/api/workspaces")
@@ -106,6 +177,25 @@ async def proxy_gateway(path: str, request: Request):
     body = await request.body()
     headers = dict(request.headers)
     # admin key 등 내부 헤더 제거
+    headers.pop("x-admin-key", None)
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        r = await client.request(request.method, url, content=body, headers=headers)
+        return (r.json() if "application/json" in r.headers.get("content-type", "") else {"raw": r.text})
+
+
+@app.post("/api/idp/{path:path}")
+@app.get("/api/idp/{path:path}")
+async def proxy_idp(path: str, request: Request):
+    """
+    브라우저 CORS 없이 Mock IdP를 호출하기 위한 프록시.
+    - 운영에서는 제거하거나, 내부망/프록시 정책에 맞게 제한 필요.
+    """
+    import httpx
+
+    url = f"{settings.idp_base_url}/{path}"
+    body = await request.body()
+    headers = dict(request.headers)
     headers.pop("x-admin-key", None)
 
     async with httpx.AsyncClient(timeout=30.0) as client:

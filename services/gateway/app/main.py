@@ -18,6 +18,8 @@ from .db import ensure_schema
 from .jwks_cache import jwks_cache
 from .upstream_auth import upstream_headers, httpx_verify_and_cert
 from .ilm import retention_purge
+import yaml
+from pathlib import Path
 
 app = FastAPI(title="AI Gateway", version="0.3.0")
 init_metrics(app)
@@ -191,6 +193,143 @@ async def ops_retention_purge(request: Request):
     now_ms = int(time.time()*1000)
     await retention_purge(now_ms)
     return {"status": "ok"}
+
+
+def _ops_key_ok(provided: str | None) -> bool:
+    # 정책 변경/운영 ops는 별도 키를 권장하나, MVP에서는 retention 키를 fallback으로 사용 가능
+    expected = settings.ops_policy_key or settings.ops_retention_purge_key
+    return bool(expected and provided and provided == expected)
+
+
+@app.get("/ops/dlp/rules")
+async def ops_get_dlp_rules(request: Request):
+    """
+    DLP rules 조회(Mock 운영용).
+    - 운영에서는 별도 정책 배포 파이프라인(승인/버전/서명)으로 대체 권장
+    """
+    try:
+        identity, corr = await _authn_authz(request)
+        if identity.role != "admin":
+            raise AuthError("AUTH_FORBIDDEN", 403)
+    except AuthError as e:
+        corr = request.headers.get("x-correlation-id") or "ops"
+        return Response(content=orjson.dumps(_json_error(e.code, corr)), status_code=e.status,
+                        media_type="application/json", headers={"X-Correlation-Id": corr})
+
+    if not _ops_key_ok(request.headers.get("x-ops-key")):
+        return Response(content=orjson.dumps(_json_error("AUTH_FORBIDDEN", corr)), status_code=403, media_type="application/json",
+                        headers={"X-Correlation-Id": corr})
+
+    p = Path(settings.dlp_rules_path)
+    raw = p.read_text(encoding="utf-8")
+    doc = yaml.safe_load(raw) or {}
+    return {
+        "path": str(p),
+        "version": str(doc.get("version", "dlp-unknown")),
+        "raw": raw,
+    }
+
+
+@app.put("/ops/dlp/rules")
+async def ops_put_dlp_rules(request: Request):
+    """
+    DLP rules 갱신(Mock 운영용).
+    - body는 YAML 문자열 또는 {"raw": "..."} JSON을 허용한다.
+    """
+    try:
+        identity, corr = await _authn_authz(request)
+        if identity.role != "admin":
+            raise AuthError("AUTH_FORBIDDEN", 403)
+    except AuthError as e:
+        corr = request.headers.get("x-correlation-id") or "ops"
+        return Response(content=orjson.dumps(_json_error(e.code, corr)), status_code=e.status,
+                        media_type="application/json", headers={"X-Correlation-Id": corr})
+
+    if not _ops_key_ok(request.headers.get("x-ops-key")):
+        return Response(content=orjson.dumps(_json_error("AUTH_FORBIDDEN", corr)), status_code=403, media_type="application/json",
+                        headers={"X-Correlation-Id": corr})
+
+    body = await request.body()
+    raw: str
+    if request.headers.get("content-type", "").startswith("application/json"):
+        payload = json.loads(body.decode("utf-8") or "{}")
+        raw = str(payload.get("raw") or "")
+    else:
+        raw = body.decode("utf-8")
+
+    # validate YAML
+    doc = yaml.safe_load(raw) or {}
+    if not isinstance(doc, dict) or "rules" not in doc:
+        return Response(content=orjson.dumps(_json_error("DLP_RULES_INVALID", corr)), status_code=400,
+                        media_type="application/json", headers={"X-Correlation-Id": corr})
+
+    p = Path(settings.dlp_rules_path)
+    p.write_text(raw, encoding="utf-8")
+    dlp_engine.reload(force=True)
+
+    return {"ok": True, "path": str(p), "version": dlp_engine.version}
+
+
+@app.get("/ops/upstream/auth")
+async def ops_get_upstream_auth(request: Request):
+    """
+    Upstream auth 설정 조회(Mock 운영용).
+    - 운영에서는 Config-as-code + 승인/배포로 대체 권장
+    """
+    try:
+        identity, corr = await _authn_authz(request)
+        if identity.role != "admin":
+            raise AuthError("AUTH_FORBIDDEN", 403)
+    except AuthError as e:
+        corr = request.headers.get("x-correlation-id") or "ops"
+        return Response(content=orjson.dumps(_json_error(e.code, corr)), status_code=e.status,
+                        media_type="application/json", headers={"X-Correlation-Id": corr})
+
+    if not _ops_key_ok(request.headers.get("x-ops-key")):
+        return Response(content=orjson.dumps(_json_error("AUTH_FORBIDDEN", corr)), status_code=403, media_type="application/json",
+                        headers={"X-Correlation-Id": corr})
+
+    return {
+        "upstream_auth_mode": settings.upstream_auth_mode,
+        "has_upstream_bearer_token": bool(settings.upstream_bearer_token),
+        "upstream_ca_file": settings.upstream_ca_file,
+        "upstream_client_cert_file": settings.upstream_client_cert_file,
+        "upstream_client_key_file": settings.upstream_client_key_file,
+    }
+
+
+@app.put("/ops/upstream/auth")
+async def ops_put_upstream_auth(request: Request):
+    """
+    Upstream auth 설정 갱신(Mock 운영용).
+    - body(JSON): {"upstream_auth_mode":"none|static_bearer", "upstream_bearer_token":"..."}
+    """
+    try:
+        identity, corr = await _authn_authz(request)
+        if identity.role != "admin":
+            raise AuthError("AUTH_FORBIDDEN", 403)
+    except AuthError as e:
+        corr = request.headers.get("x-correlation-id") or "ops"
+        return Response(content=orjson.dumps(_json_error(e.code, corr)), status_code=e.status,
+                        media_type="application/json", headers={"X-Correlation-Id": corr})
+
+    if not _ops_key_ok(request.headers.get("x-ops-key")):
+        return Response(content=orjson.dumps(_json_error("AUTH_FORBIDDEN", corr)), status_code=403, media_type="application/json",
+                        headers={"X-Correlation-Id": corr})
+
+    payload = await request.json()
+    mode = str(payload.get("upstream_auth_mode") or "")
+    if mode not in ("none", "static_bearer"):
+        return Response(content=orjson.dumps(_json_error("UPSTREAM_AUTH_MODE_INVALID", corr)), status_code=400,
+                        media_type="application/json", headers={"X-Correlation-Id": corr})
+    token = payload.get("upstream_bearer_token")
+    if mode == "static_bearer" and not token:
+        return Response(content=orjson.dumps(_json_error("UPSTREAM_BEARER_TOKEN_REQUIRED", corr)), status_code=400,
+                        media_type="application/json", headers={"X-Correlation-Id": corr})
+
+    settings.upstream_auth_mode = mode
+    settings.upstream_bearer_token = str(token) if token else None
+    return {"ok": True, "upstream_auth_mode": settings.upstream_auth_mode}
 
 @app.post("/v1/autocomplete", summary="Autocomplete (Tab)")
 async def v1_autocomplete(request: Request):
