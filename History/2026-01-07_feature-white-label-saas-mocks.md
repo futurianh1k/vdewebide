@@ -50,3 +50,8 @@
   - `docs/WHITE_LABEL_SAAS.md`: 독립형 mock 계약/흐름 정리
   - `docs/ENV_EXAMPLE.md`: 독립형 옵션(JWT 검증/Upstream auth) 추가
 
+- **PoC 데모 UX**
+  - Portal에 “PoC 자동 생성(tenant/project/user/workspace 1세트)” 버튼 및 API(`/api/poc/bootstrap`)를 추가하여 시연 시간을 단축
+
+- **개발 도구**
+  - 개발 환경에서 Portainer를 사용할 수 있도록 `docker-compose.yml`에 `portainer` 서비스를 추가
