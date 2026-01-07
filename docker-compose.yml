@@ -67,10 +67,11 @@ services:
       # - static_bearer: UPSTREAM_BEARER_TOKEN을 upstream에 Bearer로 전달
       - UPSTREAM_AUTH_MODE=${UPSTREAM_AUTH_MODE-none}
       - UPSTREAM_BEARER_TOKEN=${UPSTREAM_BEARER_TOKEN-upstream-dev-token}
-      - UPSTREAM_TABBY=http://mock-upstream:8080
-      - UPSTREAM_AGENT=http://mock-upstream:8080
-      - UPSTREAM_CHAT=http://mock-upstream:8080
-      - UPSTREAM_RAG=http://mock-upstream:8080
+      # Upstream targets (기본: mock-upstream). AI 컨테이너 스택을 붙이면 env로 전환 가능
+      - UPSTREAM_TABBY=${UPSTREAM_TABBY-http://mock-upstream:8080}
+      - UPSTREAM_AGENT=${UPSTREAM_AGENT-http://mock-upstream:8080}
+      - UPSTREAM_CHAT=${UPSTREAM_CHAT-http://mock-upstream:8080}
+      - UPSTREAM_RAG=${UPSTREAM_RAG-http://mock-upstream:8080}
       - DLP_RULES_PATH=policies/dlp_rules.yaml
       - DLP_STREAM_MODE=pre_only
       - OPS_RETENTION_PURGE_KEY=dev-ops-key
@@ -120,5 +121,47 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
 
+  # --- AI containers (optional) ---
+  # Qdrant / Tabby / vLLM을 온프레미스에서 붙이기 위한 PoC 스택.
+  # profile을 켰을 때만 실행됩니다.
+
+  # Qdrant (Vector DB)
+  qdrant:
+    profiles: ["ai"]
+    image: qdrant/qdrant:v1.11.3
+    container_name: vde-qdrant
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD", "sh", "-c", "wget -qO- http://localhost:6333/healthz >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  # Tabby (Autocomplete)
+  tabby:
+    profiles: ["ai"]
+    image: tabbyml/tabby:0.22.0
+    container_name: vde-tabby
+    ports:
+      - "8084:8080"
+    # Note: 실제 운영에서는 모델/스토리지를 사내 공급하고, 리소스/보안 정책을 확정해야 함.
+
+  # vLLM (OpenAI compatible server)
+  vllm:
+    profiles: ["ai-gpu"]
+    image: vllm/vllm-openai:v0.6.6
+    container_name: vde-vllm
+    ports:
+      - "8001:8000"
+    environment:
+      - MODEL=${VLLM_MODEL-}
+    # GPU 런타임 설정은 환경별로 다르므로 문서/override에서 확정
+
 volumes:
   portainer_data:
+
+  # AI containers (optional)
+  qdrant_data:
